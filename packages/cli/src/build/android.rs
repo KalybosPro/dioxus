@@ -1041,7 +1041,6 @@ impl BuildRequest {
 /// The tools for Android (ndk, sdk, etc)
 ///
 /// <https://gist.github.com/Pulimet/5013acf2cd5b28e55036c82c91bd56d8?permalink_comment_id=3678614>
-#[derive(Debug, Clone)]
 /// Copies the resources in `from` over those in `res`. A resource has one name whatever its
 /// format (`ic_launcher.png`, `ic_launcher.webp`): one already in `res` under another format is
 /// removed first, or Gradle refuses the duplicate. Launcher icons given without an adaptive one
@@ -1083,6 +1082,7 @@ fn copy_android_res(from: &std::path::Path, res: &std::path::Path) -> std::io::R
     Ok(())
 }
 
+#[derive(Debug, Clone)]
 pub(crate) struct AndroidTools {
     pub(crate) sdk: Option<PathBuf>,
     pub(crate) ndk: PathBuf,
