@@ -375,6 +375,11 @@ impl BuildRequest {
             ),
         )?;
 
+        if let Some(own) = self.config.application.android_res.as_deref() {
+            copy_android_res(&self.package_manifest_dir().join(own), &res)
+                .context("Failed to copy the application's Android resources")?;
+        }
+
         Ok(())
     }
 
@@ -1037,6 +1042,47 @@ impl BuildRequest {
 ///
 /// <https://gist.github.com/Pulimet/5013acf2cd5b28e55036c82c91bd56d8?permalink_comment_id=3678614>
 #[derive(Debug, Clone)]
+/// Copies the resources in `from` over those in `res`. A resource has one name whatever its
+/// format (`ic_launcher.png`, `ic_launcher.webp`): one already in `res` under another format is
+/// removed first, or Gradle refuses the duplicate. Launcher icons given without an adaptive one
+/// replace `res`'s adaptive icon too, which Android would otherwise prefer.
+fn copy_android_res(from: &std::path::Path, res: &std::path::Path) -> std::io::Result<()> {
+    let mut gives_launcher = false;
+    let mut gives_adaptive = false;
+    for dir in std::fs::read_dir(from)?.flatten() {
+        if !dir.path().is_dir() {
+            continue;
+        }
+        let folder = dir.file_name();
+        let target = res.join(&folder);
+        std::fs::create_dir_all(&target)?;
+        for file in std::fs::read_dir(dir.path())?.flatten() {
+            let path = file.path();
+            let Some(stem) = path.file_stem().map(|s| s.to_os_string()) else {
+                continue;
+            };
+            if stem == "ic_launcher" {
+                gives_launcher = true;
+                gives_adaptive |= folder.to_string_lossy().starts_with("mipmap-anydpi");
+            }
+            for existing in std::fs::read_dir(&target)?.flatten() {
+                let existing = existing.path();
+                if existing.file_stem() == Some(stem.as_os_str()) {
+                    std::fs::remove_file(&existing)?;
+                }
+            }
+            std::fs::copy(&path, target.join(file.file_name()))?;
+        }
+    }
+    if gives_launcher && !gives_adaptive {
+        let adaptive = res.join("mipmap-anydpi-v26").join("ic_launcher.xml");
+        if adaptive.exists() {
+            std::fs::remove_file(adaptive)?;
+        }
+    }
+    Ok(())
+}
+
 pub(crate) struct AndroidTools {
     pub(crate) sdk: Option<PathBuf>,
     pub(crate) ndk: PathBuf,

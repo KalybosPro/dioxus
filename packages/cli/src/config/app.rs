@@ -52,6 +52,12 @@ pub(crate) struct ApplicationConfig {
     #[serde(default)]
     pub(crate) android_main_activity: Option<PathBuf>,
 
+    /// A folder of Android resources copied over the defaults `dx` writes, the launcher icons
+    /// (`mipmap-*/ic_launcher.png`) among them. A resource given here replaces `dx`'s of the same
+    /// name whatever its format, and launcher icons given here replace `dx`'s adaptive one.
+    #[serde(default)]
+    pub(crate) android_res: Option<PathBuf>,
+
     /// Specified minimum sdk version for gradle to build the app with.
     #[serde(default)]
     pub(crate) android_min_sdk_version: Option<u32>,
